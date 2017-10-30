@@ -1,81 +1,140 @@
 #!/usr/bin/env python
-import socket
+from socket import *
 import subprocess
 import sys
 from datetime import datetime
 import getopt
+from scapy.all import *
+
+# At a minimum your tool should (40 points):
+# 1.Allow command-line switches to specify a host and port.
+# 2.Present a simple response to the user.
+# Additional points are provided depending on the comprehensiveness of the feature. For example:
+	Allow more than one host to be scanned – 10 points maximum.
+	#		Reading a text file of host IP’s or reading a range from the command line – 5 points.
+			Doing both +2 points
+		Allowing different ways to specify hosts (subnet mask and range) – 5 points.
+#	Allow multiple ports to be specified – 10 points maximum.
+#	Use of more than one protocol (TCP or UDP is assumed within the base 40 points)
+#		ICMP 5 points
+		TCP or UDP (to complement the one already provided) – 10 points
+#	Traceroute – Max 5 points
+	User experience results – eg. An HTML or PDF report:
+		Max 10 points
+	GUI or Web management of tool
+		Max 10 points
+	Other ideas or concepts not mentioned
+		Max 20 points
+		# Gives total time
+		# Allows for CTRL+C exiting
 
 def main(argv):
-	# Clear the screen
-	subprocess.call('clear', shell=True)
-	print argv
-	# Ask for input
-	remoteServer    = raw_input("Enter a remote host to scan: ")
-	portRange    = raw_input("Enter the port range ending number: ")
-	remoteServerIP  = socket.gethostbyname(remoteServer)
 
-	# Print a nice banner with information on which host we are about to scan
-	print "-" * 60
-	print "Please wait, scanning remote host", remoteServerIP
-	print "-" * 60
+	if not argv:
+		print "Syntax is `portscanner.py <host> <port> <proto>`"
+		sys.exit()
 
-	# Check what time the scan started
+	remoteServer = argv[0]
+	remoteServerList = remoteServer.split(',')
+
+	portRange = argv[1]
+	portRangeList = portRange.split('-')
+
+	if len(portRangeList) == 1:
+		portRangeList.insert(1, portRange)
+
+
+
 	t1 = datetime.now()
 
-	if argv[0] == "tcp":
-		print "tcpscan"
-		try:
-		    for port in range(1,int(portRange)):  
-		        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-		        result = sock.connect_ex((remoteServerIP, port))
-		        if result == 0:
-		            print "Port {}: 	 Open".format(port)
-		        sock.close()
+	for host in remoteServerList:
+		remoteServerIP  = socket.gethostbyname(host)
 
-		except KeyboardInterrupt:
-		    print "You pressed Ctrl+C"
-		    sys.exit()
-
-		except socket.gaierror:
-		    print 'Hostname could not be resolved. Exiting'
-		    sys.exit()
-
-		except socket.error:
-		    print "Couldn't connect to server"
-		    sys.exit()
-
-	if argv[0] == "udp":
-		try:
-		    for port in range(1,int(portRange)):  
-		        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-		        sock.settimeout(5)
-		        result = sock.connect_ex((remoteServerIP, port))
-		        data = sock.recv(2048)
-		        if len(data) > 0:
-		            print "Port {}: 	 Open".format(port)
-		        sock.close()
-
-		except KeyboardInterrupt:
-		    print "You pressed Ctrl+C"
-		    sys.exit()
-
-		except socket.gaierror:
-		    print 'Hostname could not be resolved. Exiting'
-		    sys.exit()
-
-		except socket.error:
-		    print "Couldn't connect to server"
-		    sys.exit()
+		print "Traceroute Starting"
+		#result, unans = traceroute(host,maxttl=32)
 
 
-	# Checking the time again
-	t2 = datetime.now()
+		print "-" * 60
+		print "Please wait, scanning remote host", remoteServerIP
+		print "-" * 60
 
-	# Calculates the difference of time, to see how long it took to run the script
-	total =  t2 - t1
+		if argv[2] == "tcp":
+			print "tcpscan"
+			try:
+			    for port in range(int(portRangeList[0]), int(portRangeList[1])+1):
+			        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+			        result = sock.connect_ex((remoteServerIP, port))
+			        if result == 0:
+			            print "Port {}: 	 Open".format(port)
+			        sock.close()
 
-	# Printing the information to screen
-	print 'Scanning Completed in: ', total
+			except KeyboardInterrupt:
+			    print "You pressed Ctrl+C"
+			    sys.exit()
+
+			except socket.gaierror:
+			    print 'Hostname could not be resolved. Exiting'
+			    sys.exit()
+
+			except socket.error:
+			    print "Couldn't connect to server"
+			    sys.exit()
+
+		if argv[2] == "udp":
+			try:
+				for port in range(int(portRangeList[0]), int(portRangeList[1])+1):
+					packet = IP(dst=host)/UDP(dport=port)
+					resp = sr1(packet, timeout=2)
+					if resp:
+						print "Port {}: 	 Open".format(port)
+
+					# sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+					# data = "Testing"
+					# sock.sendto(data,(host,port))
+					# sock.settimeout(0)
+					# print ((sock.recvfrom(1024)))
+					# print "Port {}: 	 Open".format(port)
+					# sock.close()
+
+
+			except KeyboardInterrupt:
+			    print "You pressed Ctrl+C"
+			    sys.exit()
+
+			except socket.gaierror:
+			    print 'Hostname could not be resolved. Exiting'
+			    sys.exit()
+
+			except socket.error:
+			    print "Couldn't connect to server"
+			    sys.exit()
+
+
+
+		if argv[2] == "icmp":
+			try:
+				print "Starting ICMP"
+				pingr = IP(dst=host)/ICMP()
+				resp = srloop(pingr,count=5)
+
+			except KeyboardInterrupt:
+			    print "You pressed Ctrl+C"
+			    sys.exit()
+
+			except socket.gaierror:
+			    print 'Hostname could not be resolved. Exiting'
+			    sys.exit()
+
+			except socket.error:
+			    print "Couldn't connect to server"
+			    sys.exit()
+
+
+		t2 = datetime.now()
+
+		total =  t2 - t1
+
+		print 'Scanning Completed in: ', total
 
 
 
