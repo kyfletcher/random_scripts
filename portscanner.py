@@ -10,23 +10,30 @@ from scapy.all import *
 # 1.Allow command-line switches to specify a host and port.
 # 2.Present a simple response to the user.
 # Additional points are provided depending on the comprehensiveness of the feature. For example:
-	Allow more than one host to be scanned – 10 points maximum.
-	#		Reading a text file of host IP’s or reading a range from the command line – 5 points.
-			Doing both +2 points
-		Allowing different ways to specify hosts (subnet mask and range) – 5 points.
+#	Allow more than one host to be scanned – 10 points maximum.
+#		Reading a text file of host IP’s or reading a range from the command line – 5 points.
+#			Doing both +2 points
+#		Allowing different ways to specify hosts (subnet mask and range) – 5 points.
 #	Allow multiple ports to be specified – 10 points maximum.
 #	Use of more than one protocol (TCP or UDP is assumed within the base 40 points)
 #		ICMP 5 points
-		TCP or UDP (to complement the one already provided) – 10 points
+#		TCP or UDP (to complement the one already provided) – 10 points
 #	Traceroute – Max 5 points
-	User experience results – eg. An HTML or PDF report:
-		Max 10 points
-	GUI or Web management of tool
-		Max 10 points
-	Other ideas or concepts not mentioned
-		Max 20 points
-		# Gives total time
-		# Allows for CTRL+C exiting
+#	User experience results – eg. An HTML or PDF report:
+#		Max 10 points
+#	GUI or Web management of tool
+#		Max 10 points
+#	Other ideas or concepts not mentioned
+#		Max 20 points
+#			Gives total time scanned
+#			Allows for CTRL+C exiting
+
+
+#This can do both tcp, udp, and icmp. 
+#It can do multiple hosts to be specified in a comma seperated list, no spaces. 
+#Multiple ports can be specified, like 100-1000
+#Traceroute is run before scanning starts
+#Other ideas: Gives total time scanned at the end of the scan, and it allows for CTRL+C exiting
 
 def main(argv):
 
@@ -51,7 +58,7 @@ def main(argv):
 		remoteServerIP  = socket.gethostbyname(host)
 
 		print "Traceroute Starting"
-		#result, unans = traceroute(host,maxttl=32)
+		result, unans = traceroute(host,maxttl=32)
 
 
 		print "-" * 60
@@ -84,17 +91,9 @@ def main(argv):
 			try:
 				for port in range(int(portRangeList[0]), int(portRangeList[1])+1):
 					packet = IP(dst=host)/UDP(dport=port)
-					resp = sr1(packet, timeout=2)
+					resp = sr1(packet, timeout=2, verbose=0)
 					if resp:
 						print "Port {}: 	 Open".format(port)
-
-					# sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-					# data = "Testing"
-					# sock.sendto(data,(host,port))
-					# sock.settimeout(0)
-					# print ((sock.recvfrom(1024)))
-					# print "Port {}: 	 Open".format(port)
-					# sock.close()
 
 
 			except KeyboardInterrupt:
